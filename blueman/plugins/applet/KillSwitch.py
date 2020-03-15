@@ -58,7 +58,15 @@ class KillSwitch(AppletPlugin):
         self._connman_watch_id = Gio.bus_watch_name(Gio.BusType.SYSTEM, "net.connman", Gio.BusNameWatcherFlags.NONE,
                                                     self._on_connman_appeared, self._on_connman_vanished)
 
-        self._fd = os.open('/dev/rfkill', os.O_RDONLY | os.O_NONBLOCK)
+        try:
+            self._fd = os.open('/dev/rfkill', os.O_RDONLY | os.O_NONBLOCK)
+        except OsError as err:
+            msg = _("Failed to initialize the KillSwitch plugin") + ": " + err.str()
+            d = Gtk.MessageDialog(parent=self.dialog, flags=Gtk.DialogFlags.MODAL, type=Gtk.MessageType.ERROR,
+                                  buttons=Gtk.ButtonsType.CLOSE, message_format=msg)
+            d.props.icon_name = "blueman"
+            d.run()
+            d.destroy()
 
         ref = weakref.ref(self)
         self._iom = GLib.io_add_watch(self._fd, GLib.IO_IN | GLib.IO_ERR | GLib.IO_HUP,
